@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Model from '@/models/Model';
+import User from '@/models/User';
 
 // GET all models
 export async function GET(request: NextRequest) {
@@ -13,18 +14,21 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
     const sortBy = searchParams.get('sortBy') || 'createdAt';
     const order = searchParams.get('order') || 'desc';
+    const userId = searchParams.get('userId') || '';
 
     const skip = (page - 1) * limit;
 
-    let query = {};
+    let query: any = {};
     if (search) {
-      query = {
-        $or: [
-          { title: { $regex: search, $options: 'i' } },
-          { description: { $regex: search, $options: 'i' } },
-          { tags: { $in: [new RegExp(search, 'i')] } },
-        ],
-      };
+      query.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { tags: { $in: [new RegExp(search, 'i')] } },
+      ];
+    }
+    
+    if (userId) {
+      query.userId = userId;
     }
 
     const models = await Model.find(query)
@@ -33,11 +37,22 @@ export async function GET(request: NextRequest) {
       .limit(limit)
       .lean();
 
+    // Manually populate user data
+    const userIds = [...new Set(models.map(m => m.userId?.toString()).filter(Boolean))];
+    const users = await User.find({ _id: { $in: userIds } }).select('name email').lean();
+    const userMap = new Map(users.map(u => [u._id.toString(), u]));
+
+    // Attach user data to models
+    const modelsWithUsers = models.map(model => ({
+      ...model,
+      user: model.userId ? userMap.get(model.userId.toString()) : null,
+    }));
+
     const total = await Model.countDocuments(query);
 
     return NextResponse.json({
       success: true,
-      data: models,
+      data: modelsWithUsers,
       pagination: {
         page,
         limit,
@@ -60,10 +75,10 @@ export async function POST(request: NextRequest) {
     await dbConnect();
 
     const body = await request.json();
-    const { title, description, fileUrl, thumbnailUrl, fileSize, format, tags, userId, userName } = body;
+    const { title, description, fileUrl, fileId, thumbnailUrl, thumbnailId, fileSize, format, tags, userId } = body;
 
     // Validate required fields
-    if (!title || !description || !fileUrl || !fileSize || !format || !userId || !userName) {
+    if (!title || !description || !fileUrl || !fileSize || !format || !userId) {
       return NextResponse.json(
         { success: false, error: 'Missing required fields' },
         { status: 400 }
@@ -74,16 +89,26 @@ export async function POST(request: NextRequest) {
       title,
       description,
       fileUrl,
+      fileId,
       thumbnailUrl,
+      thumbnailId,
       fileSize,
       format,
       tags: tags || [],
       userId,
-      userName,
     });
 
+    // Manually fetch user data
+    const user = await User.findById(userId).select('name email').lean();
+
     return NextResponse.json(
-      { success: true, data: model },
+      { 
+        success: true, 
+        data: {
+          ...model.toObject(),
+          user,
+        }
+      },
       { status: 201 }
     );
   } catch (error) {

@@ -11,8 +11,7 @@ export interface IModel {
   fileSize: number;
   format: string;
   tags: string[];
-  userId: string;
-  userName: string;
+  userId: mongoose.Types.ObjectId;
   likes: number;
   views: number;
   createdAt: Date;
@@ -58,11 +57,8 @@ const ModelSchema = new Schema<IModel>(
       default: [],
     },
     userId: {
-      type: String,
-      required: true,
-    },
-    userName: {
-      type: String,
+      type: Schema.Types.ObjectId,
+      ref: 'User',
       required: true,
     },
     likes: {

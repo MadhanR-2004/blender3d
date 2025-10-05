@@ -11,7 +11,16 @@ interface Model {
   thumbnailUrl?: string;
   format: string;
   tags: string[];
-  userName: string;
+  user?: {
+    _id: string;
+    name: string;
+    email: string;
+  } | null;
+  userId?: {
+    _id: string;
+    name: string;
+    email: string;
+  } | string;
   likes: number;
   views: number;
   createdAt: string;

@@ -22,7 +22,16 @@ interface Model {
   thumbnailUrl?: string;
   format: string;
   tags: string[];
-  userName: string;
+  user?: {
+    _id: string;
+    name: string;
+    email: string;
+  } | null;
+  userId?: {
+    _id: string;
+    name: string;
+    email: string;
+  } | string;
   likes: number;
   views: number;
   fileSize: number;
@@ -166,7 +175,10 @@ export default function ModelDetailPage() {
             
             <div className="mb-4">
               <span className="text-gray-400">By </span>
-              <span className="text-white font-semibold">{model.userName}</span>
+              <span className="text-white font-semibold">
+                {model.user?.name || 
+                 (typeof model.userId === 'object' ? model.userId.name : 'Unknown User')}
+              </span>
             </div>
 
             {/* <div className="flex gap-4 mb-6">

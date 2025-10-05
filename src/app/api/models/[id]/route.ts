@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Model from '@/models/Model';
+import User from '@/models/User';
 import getGridFSBucket from '@/lib/gridfs';
 import { ObjectId } from 'mongodb';
 
@@ -12,8 +13,10 @@ export async function GET(
   try {
     await dbConnect();
     const { id } = await params;
+    
+    const skipViewCount = request.nextUrl.searchParams.get('skipViewCount');
 
-    const model = await Model.findById(id);
+    const model = await Model.findById(id).lean();
 
     if (!model) {
       return NextResponse.json(
@@ -22,7 +25,21 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ success: true, data: model });
+    // Manually fetch user data
+    const user = model.userId ? await User.findById(model.userId).select('name email').lean() : null;
+
+    // Increment view count if not skipped
+    if (!skipViewCount) {
+      await Model.findByIdAndUpdate(id, { $inc: { views: 1 } });
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      data: {
+        ...model,
+        user,
+      }
+    });
   } catch (error) {
     console.error('Error fetching model:', error);
     return NextResponse.json(
@@ -45,7 +62,7 @@ export async function PUT(
     const model = await Model.findByIdAndUpdate(id, body, {
       new: true,
       runValidators: true,
-    });
+    }).lean();
 
     if (!model) {
       return NextResponse.json(
@@ -54,7 +71,10 @@ export async function PUT(
       );
     }
 
-    return NextResponse.json({ success: true, data: model });
+    // Manually fetch user data
+    const user = model.userId ? await User.findById(model.userId).select('name email').lean() : null;
+
+    return NextResponse.json({ success: true, data: { ...model, user } });
   } catch (error) {
     console.error('Error updating model:', error);
     return NextResponse.json(

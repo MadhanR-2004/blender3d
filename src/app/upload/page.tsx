@@ -84,9 +84,12 @@ export default function UploadPage() {
         fileSize: uploadData.data.fileSize,
         format: uploadData.data.format,
         tags: formData.tags.split(',').map((tag) => tag.trim()).filter(Boolean),
-        userId: user?._id || 'demo-user-id',
-        userName: user?.name || 'Demo User',
+        userId: user?.id || user?._id,
       };
+
+      if (!modelData.userId) {
+        throw new Error('User not authenticated');
+      }
 
       const createResponse = await fetch('/api/models', {
         method: 'POST',

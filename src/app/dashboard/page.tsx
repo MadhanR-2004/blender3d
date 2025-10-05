@@ -19,7 +19,16 @@ interface Model {
   thumbnailUrl?: string;
   format: string;
   tags: string[];
-  userName: string;
+  user?: {
+    _id: string;
+    name: string;
+    email: string;
+  } | null;
+  userId?: {
+    _id: string;
+    name: string;
+    email: string;
+  } | string;
   likes: number;
   views: number;
   createdAt: string;
@@ -55,9 +64,10 @@ export default function DashboardPage() {
       if (!userStr) return;
 
       const currentUser = JSON.parse(userStr);
+      const userId = currentUser.id || currentUser._id;
       
-      // Fetch models by current user
-      const response = await fetch(`/api/models?userName=${encodeURIComponent(currentUser.name)}`);
+      // Fetch models by current user ID
+      const response = await fetch(`/api/models?userId=${userId}`);
       const data = await response.json();
 
       if (data.success) {

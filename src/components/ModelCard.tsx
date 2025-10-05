@@ -11,7 +11,16 @@ interface ModelCardProps {
     thumbnailUrl?: string;
     format: string;
     tags: string[];
-    userName: string;
+    user?: {
+      _id: string;
+      name: string;
+      email: string;
+    } | null;
+    userId?: {
+      _id: string;
+      name: string;
+      email: string;
+    } | string;
     likes: number;
     views: number;
   };
@@ -19,6 +28,10 @@ interface ModelCardProps {
 
 export default function ModelCard({ model }: ModelCardProps) {
   const [imageError, setImageError] = useState(false);
+  
+  // Handle both user field and populated userId
+  const userName = model.user?.name || 
+                   (typeof model.userId === 'object' ? model.userId.name : 'Unknown User');
 
   return (
     <Link href={`/model/${model._id}`}>
@@ -81,7 +94,7 @@ export default function ModelCard({ model }: ModelCardProps) {
 
           {/* Footer */}
           <div className="flex items-center justify-between text-sm text-gray-400">
-            <span className="truncate">{model.userName}</span>
+            <span className="truncate">{userName}</span>
             <div className="flex gap-3">
               <span className="flex items-center gap-1">
                 <svg
